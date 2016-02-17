@@ -24,6 +24,7 @@ program
   .option('-D, --dataset <dataset>', 'specifies the dataset ID of BigQuery')
   .option('-T, --table <table>', 'specifies the table ID of BigQuery')
   .option('-S, --schema <schemafile>', 'specifies the table schema of BigQuery table to import', parseSchema)
+  .option('-M, --map <mapfile>', 'specifies the value map from MongoDB to BQ', parseMap)
   .option('--autoclean', 'clean after run')
   .option('--async', 'no wait load job')
   .option('--batchsize <batch size>', 'spefies the batch size for each fetch from MongoDB', parseInt)
@@ -40,6 +41,7 @@ var opts = {
   password: program.password,
   query: program.query || {},
   fields: parseFields(program.schema, program.fields),
+  map: program.map,
   project: program.project,
   keyfile: program.keyfile,
   bucket: program.bucket,
@@ -80,12 +82,11 @@ function required(args, key) {
 }
 
 function parseFields(schema, fields) {
+  var f = (fields || "").split(',');
   if (schema) {
-    return extractFields(schema);
-  } else if (fields) {
-    return fields.split(',');
+    return extractFields(schema).concat(f);
   } else {
-    return [];
+    return f;
   }
 }
 
@@ -104,4 +105,13 @@ function extractFields(schema) {
   }).filter(function (f) {
     return f !== 'id';
   });
+}
+
+function parseMap(mapFile) {
+	try {
+		return JSON.parse(fs.readFileSync(mapFile, { encoding: 'utf8' }));
+	} catch (e) {
+		console.error(e);
+		process.exit(1);
+	}
 }
